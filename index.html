@@ -95,6 +95,51 @@
           </div>
         </section>
 
+        <section class="analyzer-panel filter-lab" aria-labelledby="filterTitle">
+          <div class="panel-heading"><h2 id="filterTitle">Biquad 필터 실습 · Low-pass</h2><span>2차 IIR 필터</span></div>
+          <div class="lab-body">
+            <p>낮은 주파수는 통과시키고 높은 주파수는 줄여 봅니다. 파일을 넣고 ▶ 재생한 뒤, 원음과 필터음을 비교하세요.</p>
+            <div class="lab-controls">
+              <label>Cutoff Frequency <output id="cutoffValue" for="cutoff">1,000 Hz</output>
+                <input id="cutoff" type="range" min="0" max="1000" value="566" aria-describedby="cutoffHelp" />
+                <small id="cutoffHelp">낮출수록 높은 배음이 줄어 소리가 어두워집니다. 슬라이더는 로그 간격입니다.</small>
+              </label>
+              <label>Q · 공진 <output id="qValue" for="filterQ">0.707</output>
+                <input id="filterQ" type="range" min="0.3" max="5" step="0.001" value="0.70710678" aria-describedby="qHelp" />
+                <small id="qHelp">높이면 Cutoff 근처가 더 강조됩니다. Q를 높여도 필터 차수는 2차입니다.</small>
+              </label>
+            </div>
+            <div class="button-row" role="group" aria-label="원음과 필터 비교">
+              <button id="dryButton" type="button" aria-pressed="true">원음 듣기</button>
+              <button id="wetButton" type="button" aria-pressed="false">필터음 듣기</button>
+              <button id="filterReset" type="button">기본값 · 1 kHz / Q 0.707</button>
+              <label class="loop-control"><input id="loopAudio" type="checkbox" /> 반복 재생</label>
+            </div>
+            <label class="volume-control">비교 음량 <output id="volumeValue" for="labVolume">−18 dB</output>
+              <input id="labVolume" type="range" min="-36" max="-12" step="1" value="-18" />
+            </label>
+            <p id="filterStatus" role="status">원음 선택 · 재생 대기</p>
+            <p class="lab-caption">두 소리에 같은 출력 감쇠를 적용합니다. Q를 높이면 필터음이 더 커질 수 있습니다.</p>
+          </div>
+          <canvas id="responseCanvas" role="img" aria-label="Low-pass 주파수 응답: 가로축 주파수 Hz, 세로축 이득 dB" aria-describedby="responseReadout"></canvas>
+          <div class="lab-body">
+            <p id="responseReadout"></p>
+            <p class="lab-caption">청록 실선: 설정한 필터 응답 · 회색 점선: 원음 0 dB · 금색 세로선: Cutoff. 출력 음량 감쇠는 이 그래프에 포함하지 않습니다.</p>
+            <div class="lesson-grid">
+              <p><strong>① Cutoff를 움직여 보기</strong>Q 0.707에서 4 kHz → 1 kHz → 250 Hz로 내려 보세요. 어떤 배음이 사라지나요?</p>
+              <p><strong>② Q만 바꿔 보기</strong>Cutoff를 고정하고 Q를 0.707 → 2 → 5로 올려 보세요. 경계 근처 봉우리와 소리의 울림을 비교하세요.</p>
+              <p><strong>③ 차수 이해하기</strong>이 필터는 2차입니다. Cutoff보다 충분히 높고 나이퀴스트보다 낮은 구간에서 약 −12 dB/oct로 감소합니다. 디지털 필터의 기울기는 전 구간에서 일정하지 않습니다.</p>
+            </div>
+            <details><summary>수식으로 한 단계 더 이해하기</summary>
+              <p>현재 입력 x[n]과 과거 입력·출력을 가중합하여 현재 출력 y[n]을 만듭니다. n은 샘플 번호이고, n−1과 n−2는 각각 한 샘플 전과 두 샘플 전입니다.</p>
+              <p class="equation">y[n] = b₀x[n] + b₁x[n−1] + b₂x[n−2] − a₁y[n−1] − a₂y[n−2]</p>
+              <p>a₀ = 1로 정규화한 식입니다. 전달함수의 분자와 분모가 z⁻¹에 대한 2차식이라 Biquad라고 부릅니다. 과거 출력이 다시 사용되어 IIR 필터가 됩니다. Cutoff와 Q를 조절하면 이 계수들이 바뀝니다.</p>
+              <p>주파수 응답은 각 주파수의 진폭이 몇 배가 되는지 나타냅니다. 0 dB는 1배, 약 −6 dB는 0.5배입니다. 이 Low-pass의 설정 주파수에서 이득은 20 log₁₀(Q) dB입니다. 따라서 Q ≈ 0.707일 때만 약 −3 dB이며, Q = 2이면 약 +6 dB입니다.</p>
+            </details>
+            <p class="lab-caption">아래 파형·배음 ADSR·CSV/JSON은 원본 기준입니다. Spectrum의 청록 점선은 현재 설정의 정상상태 예상 스펙트럼이며, 실시간 측정이나 필터 처리 파일 분석 결과가 아닙니다.</p>
+          </div>
+        </section>
+
         <div class="top-grid">
           <section class="analyzer-panel waveform-panel">
             <div class="panel-heading">
@@ -131,6 +176,7 @@
       </section>
     </main>
 
+    <script src="./filter-lab.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

@@ -497,3 +497,30 @@ input[type="range"] {
     grid-template-columns: 88px 84px 72px minmax(0, 1fr);
   }
 }
+
+/* Filter lab uses the analyzer's existing palette and requires no dependencies. */
+.lab-body { padding: 18px; display: grid; gap: 16px; line-height: 1.65; }
+.filter-lab .panel-heading h2 { font-size: 1.05rem; letter-spacing: 0; }
+.lab-controls, .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.lab-controls label { display: grid; gap: 8px; font-weight: 700; }
+.lab-controls output { font-size: 1.8rem; color: var(--teal); font-variant-numeric: tabular-nums; }
+.lab-controls small, .lab-caption { color: var(--soft); font-size: 0.9rem; font-weight: 400; }
+.filter-lab input[type="range"] { min-height: 32px; margin: 0; }
+.filter-lab button[aria-pressed="true"] { background: #236f67; border-color: var(--teal); }
+.loop-control { display: flex; align-items: center; gap: 8px; }
+.volume-control { display: grid; grid-template-columns: auto auto minmax(80px, 220px); align-items: center; justify-content: start; gap: 12px; }
+#filterStatus { color: var(--gold); }
+#responseCanvas { height: 300px; }
+.lesson-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lesson-grid p { background: #23231f; padding: 16px; border-radius: 8px; }
+.lesson-grid strong { display: block; margin-bottom: 8px; color: var(--teal); }
+.filter-lab summary { cursor: pointer; color: var(--gold); font-weight: 700; }
+.filter-lab details p { margin-top: 12px; }
+.equation { overflow-x: auto; font-family: monospace; font-size: 1rem; padding: 14px; background: #141410; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+@media (max-width: 760px) {
+  .lab-controls, .lesson-grid { grid-template-columns: 1fr; gap: 16px; }
+  .filter-lab .panel-heading { flex-wrap: wrap; }
+  .volume-control { grid-template-columns: auto auto; }
+  .volume-control input { grid-column: 1 / -1; }
+}
