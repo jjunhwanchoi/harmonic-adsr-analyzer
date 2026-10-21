@@ -9,6 +9,7 @@ const state = {
   sourceNode: null,
   startedAt: 0,
   rafId: null,
+  filterLab: null,
 };
 
 const els = {
@@ -59,6 +60,7 @@ const hzFormatter = new Intl.NumberFormat("ko-KR", {
 init();
 
 function init() {
+  state.filterLab = new FilterLab(() => drawSpectrum());
   wireEvents();
   drawEmptyCanvases();
 }
@@ -98,6 +100,9 @@ function wireEvents() {
 
   els.analyzeButton.addEventListener("click", () => analyzeLoadedAudio());
   els.playButton.addEventListener("click", () => playAudio());
+  document.getElementById("loopAudio").addEventListener("change", (event) => {
+    if (state.sourceNode) state.sourceNode.loop = event.target.checked;
+  });
   els.stopButton.addEventListener("click", () => stopAudio());
   els.csvButton.addEventListener("click", () => exportCsv());
   els.jsonButton.addEventListener("click", () => exportJson());
@@ -155,6 +160,7 @@ function getAudioContext() {
   if (!state.audioContext) {
     const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
     state.audioContext = new AudioContextCtor();
+    state.filterLab.attach(state.audioContext);
   }
   return state.audioContext;
 }
@@ -576,6 +582,7 @@ function renderHarmonicRows() {
 function drawAll() {
   drawWaveform();
   drawSpectrum();
+  state.filterLab.draw();
 }
 
 function drawEmptyCanvases() {
@@ -682,7 +689,7 @@ function drawWaveform() {
   }
 
   if (state.sourceNode) {
-    const elapsed = state.audioContext.currentTime - state.startedAt;
+    const elapsed = (state.audioContext.currentTime - state.startedAt) % state.buffer.duration;
     const x = (elapsed / state.buffer.duration) * width;
     ctx.strokeStyle = "#ff7f67";
     ctx.lineWidth = 2;
@@ -713,11 +720,29 @@ function drawSpectrum() {
   for (let i = 0; i < frequencies.length; i += 1) {
     const x = logX(frequencies[i], minFreq, maxFreq, width);
     const db = 20 * Math.log10(Math.max(magnitudes[i] / maxMag, 1e-5));
-    const y = map(db, -70, 0, height - 24, 16);
+    const y = map(db, -70, 20, height - 24, 16);
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.stroke();
+
+  // Same reference level for both curves: do not normalize the filtered curve.
+  const response = state.filterLab.response(frequencies);
+  ctx.save();
+  ctx.strokeStyle = "#37d5bd";
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  for (let i = 0; i < frequencies.length; i += 1) {
+    const x = logX(frequencies[i], minFreq, maxFreq, width);
+    const db = 20 * Math.log10(Math.max(magnitudes[i] * response[i] / maxMag, 1e-5));
+    const y = map(db, -70, 20, height - 24, 16);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = "#d4cbb8";
+  ctx.font = "12px system-ui";
+  ctx.fillText("보라: 원본 · 청록 점선: 필터 적용 예상", 10, height - 30);
 
   analysis.harmonics.forEach((harmonic) => {
     if (harmonic.frequency < minFreq || harmonic.frequency > maxFreq) return;
@@ -740,6 +765,15 @@ function drawSpectrum() {
   drawAxisLabel(ctx, `${Math.round(maxFreq / 1000)} kHz`, width - 54, height - 8);
 }
 
+function drawAxisLabel(ctx, text, x, y) {
+  ctx.save();
+  ctx.fillStyle = "#aaa391";
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
 function playAudio() {
   if (!state.buffer) return;
   const context = getAudioContext();
@@ -747,18 +781,21 @@ function playAudio() {
   stopAudio(false);
   const source = context.createBufferSource();
   source.buffer = state.buffer;
-  source.connect(context.destination);
+  state.filterLab.connect(source);
+  source.loop = document.getElementById("loopAudio").checked;
   source.onended = () => {
-    stopAudio(false);
+    if (state.sourceNode === source) stopAudio();
   };
   state.sourceNode = source;
   state.startedAt = context.currentTime;
   source.start();
+  state.filterLab.setPlaying(true);
   animatePlayback();
 }
 
 function stopAudio(redraw = true) {
   if (state.sourceNode) {
+    state.sourceNode.onended = null;
     try {
       state.sourceNode.stop();
     } catch {
@@ -767,6 +804,7 @@ function stopAudio(redraw = true) {
     state.sourceNode.disconnect();
     state.sourceNode = null;
   }
+  state.filterLab.setPlaying(false);
   if (state.rafId) {
     cancelAnimationFrame(state.rafId);
     state.rafId = null;
